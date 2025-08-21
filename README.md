@@ -19,7 +19,7 @@ HearthMotion is a lightweight JavaScript library that adds elegant, smooth-scrol
 Include the hearthmotion.js file at the end of your <body> tag.
 
 ```bash
-<script src="hearthmotion.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/shakib-mia/hearthmotion@main/hearthmotion.js"></script>
 ```
 
 2. Add Animations to HTML Elements
