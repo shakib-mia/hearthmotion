@@ -115,6 +115,25 @@ HearthMotion automatically applies **Lenis smooth scrolling** across your page. 
 
 Optimized to avoid expensive scroll event listeners for better performance.
 
+## ⚙️ Platform Compatibility
+
+### WordPress:
+
+- Can be included via wp_enqueue_script() in your theme or plugin.
+
+- Can also be used in HTML blocks inside pages/posts.
+
+### Other Platforms:
+
+- Shopify, Joomla, Wix (with custom code), plain HTML/JS sites.
+
+- Must allow custom JS inclusion and full-page wrapper for smooth scrolling.
+
+### Limitations:
+
+- Cannot be used in builders that restrict custom JS.
+- Smooth scroll wrapper is required for Lenis functionality.
+
 ## 🌟 Popular Animation Options
 
 You can use all animation listed of [animate.css](https://animate.style/) in `data-animate` such as:
