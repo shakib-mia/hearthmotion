@@ -34,13 +34,62 @@
       type: "js",
       src: "https://cdn.jsdelivr.net/npm/@studio-freight/lenis@latest/bundled/lenis.min.js",
     });
-    const lenis = new Lenis();
+
+    // 🔥 Create wrapper + content structure (GSAP style)
+    const bodyChildren = Array.from(document.body.children);
+    const wrapper = document.createElement("div");
+    wrapper.id = "hm-wrapper";
+    const content = document.createElement("div");
+    content.id = "hm-content";
+
+    // Move all body children into #hm-content
+    bodyChildren.forEach((child) => {
+      if (child !== wrapper) content.appendChild(child);
+    });
+
+    wrapper.appendChild(content);
+    document.body.appendChild(wrapper);
+
+    // Apply base styles
+    const style = document.createElement("style");
+    style.innerHTML = `
+      html, body {
+        height: 100%;
+        overflow: hidden;
+      }
+      #hm-wrapper {
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%;
+        height: 100%;
+        overflow-y: scroll; /* scrollbar এখান থেকে আসবে */
+        overflow-x: hidden;
+        -webkit-overflow-scrolling: touch;
+      }
+      #hm-content {
+        will-change: transform;
+      }
+    `;
+    document.head.appendChild(style);
+
+    // ✅ Lenis initialize on wrapper
+    const lenis = new Lenis({
+      wrapper: wrapper,
+      content: content,
+      smooth: true,
+      syncWheel: true,
+      syncTouch: true,
+    });
+
     function raf(time) {
       lenis.raf(time);
       requestAnimationFrame(raf);
     }
     requestAnimationFrame(raf);
-    console.log("Lenis smooth scroll initialized");
+
+    console.log(
+      "HearthMotion: Lenis smooth scroll initialized with proxy scrollbar"
+    );
   }
 
   function initScrollAnimations() {
