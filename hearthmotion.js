@@ -1,4 +1,4 @@
-// hearthmotion.js
+// hearthmotion.js - Complete version with auto-hide scrollbar
 (function (global) {
   function hyphenToCamelCase(text) {
     return text.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
@@ -85,7 +85,7 @@
         background: rgba(0,0,0,0.2); 
         z-index:99999999; 
         border-radius:4px; 
-        transition: width 0.3s ease; 
+        transition: width 0.3s ease, opacity 0.4s ease, transform 0.4s ease; 
       }
       #hm-thumb { 
         position:absolute; 
@@ -97,6 +97,10 @@
         border-radius:4px; 
         cursor:pointer; 
         z-index:9999999;
+        transition: background 0.2s ease;
+      }
+      #hm-thumb:hover {
+        background: rgba(0,0,0,0.7);
       }
     `;
     document.head.appendChild(style);
@@ -119,10 +123,33 @@
     }
     requestAnimationFrame(raf);
 
+    // Store reference
+    global.HearthMotion._lenis = lenis;
+
     return lenis;
   }
 
   function initThumb(lenis, wrapper, content, track, thumb) {
+    let scrollTimeout;
+    const HIDE_DELAY = 2000; // 2 seconds of inactivity
+
+    // Auto-hide functionality
+    function showScrollbar() {
+      track.style.opacity = "1";
+      track.style.transform = "translateX(0)";
+    }
+
+    function hideScrollbar() {
+      track.style.opacity = "0";
+      track.style.transform = "translateX(10px)";
+    }
+
+    function resetScrollbarTimer() {
+      showScrollbar();
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(hideScrollbar, HIDE_DELAY);
+    }
+
     function updateThumb(scroll = lenis.scroll) {
       const wrapperHeight = wrapper.clientHeight;
       const contentHeight = content.scrollHeight;
@@ -135,7 +162,11 @@
       thumb.style.top = top + "px";
     }
 
-    lenis.on("scroll", ({ scroll }) => updateThumb(scroll));
+    lenis.on("scroll", ({ scroll }) => {
+      updateThumb(scroll);
+      resetScrollbarTimer(); // Show scrollbar on scroll
+    });
+
     window.addEventListener("resize", () => updateThumb());
 
     let isDragging = false;
@@ -147,6 +178,8 @@
       startY = e.clientY;
       startScroll = lenis.scroll;
       document.body.style.userSelect = "none";
+      showScrollbar();
+      clearTimeout(scrollTimeout);
     });
 
     document.addEventListener("mousemove", (e) => {
@@ -167,8 +200,11 @@
     });
 
     document.addEventListener("mouseup", () => {
-      isDragging = false;
-      document.body.style.userSelect = "";
+      if (isDragging) {
+        isDragging = false;
+        document.body.style.userSelect = "";
+        resetScrollbarTimer();
+      }
     });
 
     track.addEventListener("mousedown", (e) => {
@@ -196,12 +232,28 @@
       const edgeZone = 20;
       if (window.innerWidth - e.clientX <= edgeZone) {
         track.style.width = "8px";
+        showScrollbar();
+        clearTimeout(scrollTimeout);
       } else {
-        track.style.width = "6px"; // default visible
+        track.style.width = "6px";
       }
     });
 
+    // Show on hover, hide on leave
+    track.addEventListener("mouseenter", () => {
+      showScrollbar();
+      clearTimeout(scrollTimeout);
+    });
+
+    track.addEventListener("mouseleave", () => {
+      if (!isDragging) {
+        resetScrollbarTimer();
+      }
+    });
+
+    // Initial state
     updateThumb();
+    resetScrollbarTimer(); // Start the hide timer
   }
 
   function initScrollAnimations() {
@@ -212,12 +264,28 @@
           const animation = el.dataset.animate;
           if (entry.isIntersecting && !el.classList.contains("animated")) {
             if (!animation) return;
-            const delay = el.dataset.delay || "0ms";
-            const duration = el.dataset.duration || "800ms";
+
+            // Parse delay and duration - auto-add "ms" if just numbers
+            const delay = el.dataset.delay
+              ? el.dataset.delay.includes("ms")
+                ? el.dataset.delay
+                : el.dataset.delay + "ms"
+              : "0ms";
+            const duration = el.dataset.duration
+              ? el.dataset.duration.includes("ms")
+                ? el.dataset.duration
+                : el.dataset.duration + "ms"
+              : "800ms";
+
+            console.log(
+              `Animating element with: ${animation}, delay: ${delay}, duration: ${duration}`
+            );
 
             el.style.opacity = "1";
             el.style.animationDelay = delay;
             el.style.animationDuration = duration;
+
+            // Add animation classes
             el.classList.add(
               "animate__animated",
               `animate__${hyphenToCamelCase(animation)}`
@@ -231,43 +299,32 @@
                   "animate__animated",
                   `animate__${hyphenToCamelCase(animation)}`
                 );
+                console.log(`Animation completed for: ${animation}`);
               },
               { once: true }
             );
           }
         });
       },
-      { threshold: 0.2, rootMargin: "0px 0px -50px 0px" }
+      {
+        threshold: 0.1, // Lower threshold for earlier trigger
+        rootMargin: "0px 0px -20px 0px", // Less aggressive margin
+      }
     );
 
-    const elements = document.querySelectorAll("[data-animate]");
-    elements.forEach((el) => (el.style.opacity = "0"));
-    elements.forEach((el) => observer.observe(el));
+    // Wait for DOM to be fully ready
+    setTimeout(() => {
+      const elements = document.querySelectorAll("[data-animate]");
+      console.log(`Found ${elements.length} elements with data-animate`);
+
+      elements.forEach((el) => {
+        el.style.opacity = "0";
+        observer.observe(el);
+      });
+    }, 100); // Small delay to ensure everything is ready
   }
 
-  async function init() {
-    try {
-      await loadAnimateCSS();
-      await loadLenis();
-
-      const { wrapper, content, track, thumb } = initWrapper();
-      const lenis = initLenis(wrapper, content);
-
-      initThumb(lenis, wrapper, content, track, thumb);
-      initScrollAnimations();
-
-      // ✅ Initialize navbar after everything else is ready
-      initNavbar(lenis);
-
-      console.log(
-        "🎉 HearthMotion ready! Scrollbar + smooth scroll + animations active."
-      );
-    } catch (e) {
-      console.error(e);
-    }
-  }
-
-  // ✅ New navbar function - add this to your HearthMotion
+  // ✅ Navbar function
   function initNavbar(lenis) {
     const navbar = document.getElementById("navbar");
     if (!navbar) {
@@ -280,7 +337,7 @@
 
     // Set initial styles
     navbar.style.transition = "all 0.5s ease";
-    navbar.style.position = "fixed"; // Ensure it's fixed
+    navbar.style.position = "fixed";
     navbar.style.top = "0";
     navbar.style.left = "0";
     navbar.style.right = "0";
@@ -297,7 +354,7 @@
 
       // Hide/show logic
       if (scrollDirection === "down" && scroll > 50) {
-        navbar.style.transform = "translateY(-200%)"; // Better than top for performance
+        navbar.style.transform = "translateY(-100%)";
       } else {
         navbar.style.transform = "translateY(0)";
       }
@@ -314,43 +371,39 @@
       }
     }
 
-    // ✅ Use the same Lenis instance
     lenis.on("scroll", ({ scroll }) => {
       handleNavbar(scroll);
     });
 
-    // Initial state
     handleNavbar(0);
+  }
+
+  async function init() {
+    try {
+      await loadAnimateCSS();
+      await loadLenis();
+
+      const { wrapper, content, track, thumb } = initWrapper();
+      const lenis = initLenis(wrapper, content);
+
+      initThumb(lenis, wrapper, content, track, thumb);
+      initNavbar(lenis);
+
+      // Initialize animations last to ensure DOM is ready
+      initScrollAnimations();
+
+      console.log(
+        "🎉 HearthMotion ready! Auto-hide scrollbar + animations active."
+      );
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   document.addEventListener("DOMContentLoaded", init);
 
-  // ✅ Expose lenis for external use if needed
-  // ✅ Expose lenis for external use if needed
   global.HearthMotion = {
     initScrollAnimations,
     getLenis: () => global.HearthMotion._lenis,
   };
-
-  // Store lenis reference after init
-  function initLenis(wrapper, content) {
-    const lenis = new Lenis({
-      wrapper,
-      content,
-      smooth: true,
-      syncWheel: true,
-      syncTouch: true,
-    });
-
-    function raf(time) {
-      lenis.raf(time);
-      requestAnimationFrame(raf);
-    }
-    requestAnimationFrame(raf);
-
-    // ✅ Store reference
-    global.HearthMotion._lenis = lenis;
-
-    return lenis;
-  }
 })(window);
