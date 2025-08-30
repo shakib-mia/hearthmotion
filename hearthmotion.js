@@ -266,16 +266,16 @@
             if (!animation) return;
 
             // Parse delay and duration - auto-add "ms" if just numbers
-            const delay = el.dataset.delay
-              ? el.dataset.delay.includes("ms")
-                ? el.dataset.delay
-                : el.dataset.delay + "ms"
-              : "0ms";
-            const duration = el.dataset.duration
-              ? el.dataset.duration.includes("ms")
-                ? el.dataset.duration
-                : el.dataset.duration + "ms"
-              : "800ms";
+            let delay = el.dataset.delay || "0";
+            let duration = el.dataset.duration || "800";
+
+            // Add "ms" if not present
+            if (!delay.includes("ms") && !delay.includes("s")) {
+              delay += "ms";
+            }
+            if (!duration.includes("ms") && !duration.includes("s")) {
+              duration += "ms";
+            }
 
             console.log(
               `Animating element with: ${animation}, delay: ${delay}, duration: ${duration}`
